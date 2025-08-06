@@ -3,9 +3,9 @@ import random
 from pydoc import describe
 import gymnasium as gym
 import re
-from textcraft.utils import ActionFailed, ItemTag, ItemTagWithCount, Recipe, item_id_to_str
+from TextCraft.utils import ActionFailed, ItemTag, ItemTagWithCount, Recipe, item_id_to_str
 from dataclasses import dataclass
-from textcraft.crafting_tree import CraftingTree
+from TextCraft.crafting_tree import CraftingTree
 from typing import List
 import sys
 

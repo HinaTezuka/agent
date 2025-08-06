@@ -8,7 +8,7 @@ from typing import List, Set, Dict
 
 from numpy import rec
 
-from textcraft.utils import ItemTag, ItemTagWithCount, Recipe, ActionFailed, item_id_to_str
+from TextCraft.utils import ItemTag, ItemTagWithCount, Recipe, ActionFailed, item_id_to_str
 
 
 class CraftingTree:

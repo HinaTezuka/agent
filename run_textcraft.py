@@ -1,6 +1,6 @@
 import json
 import os
-import openai
+# import openai
 import sys
 import json
 import re
@@ -15,15 +15,16 @@ import copy
 import ast
 import numpy as np
 sys.path.append("../EnvironmentWebs/environments/")
-from textcraft.env import TextCraft
+from TextCraft.env import TextCraft
 
-openai.api_key = open('KEY.txt').readlines()[0].rstrip()
+# openai.api_key = open('KEY.txt').readlines()[0].rstrip()
 LM = 'gpt-3.5-turbo-instruct'
 max_runs = 40
 max_depth = 4
 num_games = 200
 verbose = False
-env = TextCraft(minecraft_dir="../EnvironmentWebs/environments/textcraft/")
+# env = TextCraft(minecraft_dir="../EnvironmentWebs/environments/textcraft/")
+env = TextCraft(minecraft_dir="TextCraft/")
 
 environment_context = '''You can perform the following actions to interact with the environment: 
 - craft [target count] [target item] using [count] [item]
@@ -107,7 +108,7 @@ def parse_expression(expression):
     stack = []
     current = {}
     for token in re.findall(r'Step \d+|AND|OR|\(|\)', expression):
-        if token.startswith('Step'):
+        if token.startswith('Step'): # Step N が出てきたら、 Nを整数にして current['steps'] に追加.
             if 'steps' not in current:
                 current['steps'] = []
             current['steps'].append(int(token.split()[1]))
@@ -481,6 +482,7 @@ rs = []; cnts = []
 rate = 0.0
 pbar.set_postfix({'success rate': rate})
 env = TextCraft(minecraft_dir="../EnvironmentWebs/environments/textcraft/")
+print(env)
 for idx in pbar:
     obs, info = env.reset(seed=idx)
     commands, task = obs.split('Goal: ')
