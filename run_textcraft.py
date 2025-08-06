@@ -481,7 +481,8 @@ pbar = tqdm(list(range(num_games)))
 rs = []; cnts = []
 rate = 0.0
 pbar.set_postfix({'success rate': rate})
-env = TextCraft(minecraft_dir="../EnvironmentWebs/environments/textcraft/")
+# env = TextCraft(minecraft_dir="../EnvironmentWebs/environments/textcraft/")
+env = TextCraft(minecraft_dir="TextCraft/")
 print(env)
 for idx in pbar:
     obs, info = env.reset(seed=idx)
