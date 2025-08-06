@@ -1,4 +1,4 @@
-# ADaPT: As-Needed Decomposition and Planning with Language Models
+<!-- # ADaPT: As-Needed Decomposition and Planning with Language Models
 * Authors: [Archiki Prasad](https://archiki.github.io), [Alexander Koller](https://www.coli.uni-saarland.de/~koller/), [Mareike Hartmann](https://scholar.google.dk/citations?user=f-NzaE8AAAAJ&hl=en), [Peter Clark](https://allenai.org/team/peterc), [Ashish Sabharwal](https://allenai.org/team/ashishs), [Mohit Bansal](https://www.cs.unc.edu/~mbansal/), [Tushar Khot](https://allenai.org/team/tushark)
 * [Paper](http://arxiv.org/abs/2311.05772)
 * **Note:** This is preliminary version of our code. The complete code to run all experiments in the paper will be added shortly.
@@ -39,4 +39,4 @@ Please cite our paper if you use our code in your works:
       journal   = "arXiv",
       year      = "2023",}
 }
-```
+``` -->
