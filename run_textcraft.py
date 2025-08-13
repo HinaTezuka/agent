@@ -14,11 +14,16 @@ from tenacity import (
 import copy
 import ast
 import numpy as np
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 sys.path.append("../EnvironmentWebs/environments/")
 from TextCraft.env import TextCraft
 
 # openai.api_key = open('KEY.txt').readlines()[0].rstrip()
-LM = 'gpt-3.5-turbo-instruct'
+# LM = 'gpt-3.5-turbo-instruct'
+model_id = 'meta-llama/Llama-2-7b-chat-hf'
+LM = AutoModelForCausalLM.from_pretrained(model_id)
+tokenizer = AutoTokenizer.from_pretrained(model_id)
 max_runs = 40
 max_depth = 4
 num_games = 200
@@ -483,7 +488,6 @@ rate = 0.0
 pbar.set_postfix({'success rate': rate})
 # env = TextCraft(minecraft_dir="../EnvironmentWebs/environments/textcraft/")
 env = TextCraft(minecraft_dir="TextCraft/")
-print(env)
 for idx in pbar:
     obs, info = env.reset(seed=idx)
     commands, task = obs.split('Goal: ')

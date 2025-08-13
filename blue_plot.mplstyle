@@ -1,0 +1,44 @@
+# --- Blue Paper style -------------------------------------------------
+
+# Canvas / background
+figure.facecolor: 0.976, 0.984, 1.000   # ~ #F9FBFF
+axes.facecolor:   0.965, 0.980, 1.000   # ~ #F6FAFF
+savefig.facecolor: 0.976, 0.984, 1.000
+savefig.edgecolor: 0.976, 0.984, 1.000
+
+# Typography / colors
+text.color:       0.118, 0.165, 0.267   # ~ #1E2A44
+axes.labelcolor:  0.118, 0.165, 0.267
+axes.titlecolor:  0.118, 0.165, 0.267
+xtick.color:      0.306, 0.431, 0.643   # ~ #4E6EA4
+ytick.color:      0.306, 0.431, 0.643
+
+# Grid / spines
+axes.grid: True
+grid.color:       0.839, 0.890, 1.000   # ~ #D6E3FF
+grid.alpha:       0.70
+grid.linestyle:   -
+axes.spines.top:  False
+axes.spines.right: False
+axes.edgecolor:   0.776, 0.847, 1.000   # ~ #C6D8FF
+
+# Font
+font.family: DejaVu Sans
+font.size: 12
+axes.titlesize: 14
+axes.labelsize: 12
+xtick.labelsize: 10
+ytick.labelsize: 10
+
+# Lines / markers / legends
+lines.linewidth: 1.8
+lines.markersize: 6
+legend.frameon: False
+legend.fontsize: 10
+
+# Boxplot defaults (optional)
+boxplot.patchartist: True
+boxplot.flierprops.markeredgecolor: 0.431, 0.659, 1.000  # ~ #6EA8FF
+boxplot.boxprops.color:         0.431, 0.659, 1.000
+boxplot.capprops.color:         0.431, 0.659, 1.000
+boxplot.whiskerprops.color:     0.431, 0.659, 1.000
