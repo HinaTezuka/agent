@@ -16,7 +16,6 @@ from transformers import (
 # 文末判定（短い末尾ウィンドウをdecodeして正規表現で判定）
 # ----------------------------
 SENT_END_RE = re.compile(r"[.!?]+(\s|$)")
-SENT_END_RE = re.compile(r"(?<!\d)\.(?!\d)(\s|$)|[!?]+(\s|$)")
 
 def is_sentence_end(tokenizer, input_ids: torch.LongTensor, tail_tokens: int = 1) -> bool:
     tail = input_ids[0, -tail_tokens:]  # B=1を想定。B>1なら行ループにする
@@ -27,45 +26,36 @@ def is_sentence_end(tokenizer, input_ids: torch.LongTensor, tail_tokens: int = 1
 # pending判定用
 # ---
 class LoggingAllLayers(StoppingCriteria):
-    def __init__(self, tokenizer, hook_mgr, prompt_len):
+    def __init__(self, tokenizer, hook_mgr: AllLayerHooks):
         self.tok = tokenizer
         self.hooks = hook_mgr
-        self.prompt_len = prompt_len
         self.step = 0
-        self.pending = False  # 「直前がピリオド記号だった」フラグ
-        self.sentences = []
+        self.sentences = []        # list of {"step":int,"hs":(L,H),"mlp":(L,H)}
 
-    def __call__(self, input_ids, scores, **kwargs):
-        gen = input_ids[0, self.prompt_len:]
-        if gen.numel() == 0:
-            return False
+        # 追加: pending 用のフラグと一時バッファ
+        self.pending = False
+        self._pending_rec = None   # {"step":int,"hs":(L,H),"mlp":(L,H)}
 
-        last_txt = self.tok.decode([gen[-1].item()], skip_special_tokens=True)
-
-        # 直前が候補で、今トークンが空白 or 生成終端（長さが伸びない状況）なら確定保存
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        # まず、pending が立っていれば「今回のトークンが空白か」を確認
         if self.pending:
+            last_txt = self.tok.decode(input_ids[0, -1:].tolist(), skip_special_tokens=True)
             if last_txt.isspace():
-                hs, mlp = self.hooks.stack_current(0)
-                self.sentences.append({"step": self.step - 1, "hs": hs, "mlp": mlp})
-                self.pending = False
-            # 空白でなければ候補取り消し
-            else:
-                self.pending = False
+                # 直前の文末候補を確定保存（直前トークンの表現を保存）
+                self.sentences.append(self._pending_rec)
+            # いずれにしろ pending はクリア
+            self.pending = False
+            self._pending_rec = None
 
-        # いまのトークンが文末候補（. ! ?）かつ “直前が数字 & 現トークンが .” ではない
-        # → 次ステップで空白/EOSを確認するため pending にする
-        if last_txt and any(ch in last_txt for ch in ".!?"):
-            if gen.numel() >= 2:
-                prev_txt = self.tok.decode([gen[-2].item()], skip_special_tokens=True)
-                if prev_txt.endswith(("0","1","2","3","4","5","6","7","8","9")) and last_txt.strip() == ".":
-                    pass  # 小数点候補は pending にしない
-                else:
-                    self.pending = True
-            else:
-                self.pending = True
+        # 新しい末尾を decode して文末候補か判定（元の関数を使用）
+        if is_sentence_end(self.tok, input_ids):
+            # いまのステップの表現をキャプチャするが、保存は次ステップで空白が来たら
+            hs, mlp = self.hooks.stack_current(0)
+            self._pending_rec = {"step": self.step, "hs": hs, "mlp": mlp}
+            self.pending = True
 
         self.step += 1
-        return False
+        return False  # 停止は他Criteriaに任せる（True だと停止）
 
 # ----------------------------
 # フック管理（全レイヤー：層出力HS & MLP出力）
