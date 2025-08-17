@@ -23,6 +23,50 @@ def is_sentence_end(tokenizer, input_ids: torch.LongTensor, tail_tokens: int = 1
     text = tokenizer.decode(tail.tolist(), skip_special_tokens=True)
     return bool(SENT_END_RE.search(text))
 
+# ---
+# pending判定用
+# ---
+class LoggingAllLayers(StoppingCriteria):
+    def __init__(self, tokenizer, hook_mgr, prompt_len):
+        self.tok = tokenizer
+        self.hooks = hook_mgr
+        self.prompt_len = prompt_len
+        self.step = 0
+        self.pending = False  # 「直前がピリオド記号だった」フラグ
+        self.sentences = []
+
+    def __call__(self, input_ids, scores, **kwargs):
+        gen = input_ids[0, self.prompt_len:]
+        if gen.numel() == 0:
+            return False
+
+        last_txt = self.tok.decode([gen[-1].item()], skip_special_tokens=True)
+
+        # 直前が候補で、今トークンが空白 or 生成終端（長さが伸びない状況）なら確定保存
+        if self.pending:
+            if last_txt.isspace():
+                hs, mlp = self.hooks.stack_current(0)
+                self.sentences.append({"step": self.step - 1, "hs": hs, "mlp": mlp})
+                self.pending = False
+            # 空白でなければ候補取り消し
+            else:
+                self.pending = False
+
+        # いまのトークンが文末候補（. ! ?）かつ “直前が数字 & 現トークンが .” ではない
+        # → 次ステップで空白/EOSを確認するため pending にする
+        if last_txt and any(ch in last_txt for ch in ".!?"):
+            if gen.numel() >= 2:
+                prev_txt = self.tok.decode([gen[-2].item()], skip_special_tokens=True)
+                if prev_txt.endswith(("0","1","2","3","4","5","6","7","8","9")) and last_txt.strip() == ".":
+                    pass  # 小数点候補は pending にしない
+                else:
+                    self.pending = True
+            else:
+                self.pending = True
+
+        self.step += 1
+        return False
+
 # ----------------------------
 # フック管理（全レイヤー：層出力HS & MLP出力）
 # ----------------------------
