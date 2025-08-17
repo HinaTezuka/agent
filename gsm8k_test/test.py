@@ -16,6 +16,7 @@ from transformers import (
 # 文末判定（短い末尾ウィンドウをdecodeして正規表現で判定）
 # ----------------------------
 SENT_END_RE = re.compile(r"[.!?]+(\s|$)")
+SENT_END_RE = re.compile(r"(?<!\d)\.(?!\d)(\s|$)|[!?]+(\s|$)")
 
 def is_sentence_end(tokenizer, input_ids: torch.LongTensor, tail_tokens: int = 1) -> bool:
     tail = input_ids[0, -tail_tokens:]  # B=1を想定。B>1なら行ループにする
