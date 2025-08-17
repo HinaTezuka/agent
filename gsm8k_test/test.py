@@ -24,38 +24,43 @@ def is_sentence_end(tokenizer, input_ids: torch.LongTensor, tail_tokens: int = 1
 
 # ---
 # pending判定用
-# ---
 class LoggingAllLayers(StoppingCriteria):
     def __init__(self, tokenizer, hook_mgr: AllLayerHooks):
         self.tok = tokenizer
         self.hooks = hook_mgr
         self.step = 0
+        self.pending = deque()     # 文末を検知した生成トークン（次ステップで確定）
+        self.prompt_hs = None      # (L,H)
+        self.prompt_mlp = None     # (L,H)
         self.sentences = []        # list of {"step":int,"hs":(L,H),"mlp":(L,H)}
 
-        # 追加: pending 用のフラグと一時バッファ
-        self.pending = False
-        self._pending_rec = None   # {"step":int,"hs":(L,H),"mlp":(L,H)}
+    def on_prompt_forward_done(self):
+        hs, mlp = self.hooks.stack_current(0)
+        self.prompt_hs, self.prompt_mlp = hs, mlp
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
-        # まず、pending が立っていれば「今回のトークンが空白か」を確認
-        if self.pending:
-            last_txt = self.tok.decode(input_ids[0, -1:].tolist(), skip_special_tokens=True)
-            if last_txt.isspace():
-                # 直前の文末候補を確定保存（直前トークンの表現を保存）
-                self.sentences.append(self._pending_rec)
-            # いずれにしろ pending はクリア
-            self.pending = False
-            self._pending_rec = None
-
-        # 新しい末尾を decode して文末候補か判定（元の関数を使用）
+        # 1) いま追加された新トークンまで含めて文末かを判定
         if is_sentence_end(self.tok, input_ids):
-            # いまのステップの表現をキャプチャするが、保存は次ステップで空白が来たら
+            self.pending.append(self.step)  # 次ステップのhookで確定
+
+        # 2) 1ステップ遅れで pending を確定（今回のhookは前回生成トークンの表現）
+        if self.pending:
+            s = self.pending.popleft()
             hs, mlp = self.hooks.stack_current(0)
-            self._pending_rec = {"step": self.step, "hs": hs, "mlp": mlp}
-            self.pending = True
+            self.sentences.append({"step": s, "hs": hs, "mlp": mlp})
 
         self.step += 1
-        return False  # 停止は他Criteriaに任せる（True だと停止）
+        return False  # 停止は他Criteriaに任せる（併用のため常にFalse）
+
+    def flush_last(self, full_seq_ids: torch.LongTensor, model, device):
+        """EOSで終わり次ステップが来ない pending を回収（1回だけ teacher-forcing）"""
+        if not self.pending:
+            return
+        with torch.no_grad():
+            _ = model(full_seq_ids.to(device))  # 全レイヤー末尾をhookで再度埋める
+        s = self.pending.popleft()
+        hs, mlp = self.hooks.stack_current(0)
+        self.sentences.append({"step": s, "hs": hs, "mlp": mlp})
 
 # ----------------------------
 # フック管理（全レイヤー：層出力HS & MLP出力）
